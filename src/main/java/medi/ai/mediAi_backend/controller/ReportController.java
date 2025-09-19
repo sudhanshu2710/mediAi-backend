@@ -12,12 +12,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
+@CrossOrigin(
+        origins = "*",
+        allowedHeaders = "*",
+        methods = {RequestMethod.POST, RequestMethod.OPTIONS}
+)
 @RestController
 @RequiredArgsConstructor
-@CrossOrigin(origins = {
-        "http://localhost:3000",
-        "https://tiwarivarun28.github.io"
-})
 @RequestMapping("/api/reports")
 public class ReportController {
     private final OpenAiService openAiService;
