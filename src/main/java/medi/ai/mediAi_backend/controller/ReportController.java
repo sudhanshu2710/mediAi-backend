@@ -53,7 +53,6 @@ public class ReportController {
         if (!StringUtils.hasText(userId)) userId = UUID.randomUUID().toString();
         // 3) fallback pipeline: chunk, embeddings, upsert to Pinecone under namespace=userId
         String namespace = userId;
-        System.out.println("uploadReport method is called !!");
         // If this is an image, use the OpenAI Vision chat flow (send image directly).
         String contentType = file.getContentType();
         if (contentType != null && contentType.startsWith("image/")) {
