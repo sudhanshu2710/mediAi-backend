@@ -3,7 +3,7 @@ server:
 
 app:
   openai:
-    api-key: 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
+    api-key: ${OPENAI_API_KEY}
     base-url: https://api.openai.com/v1
     # Recommend configuring the model to one that matches your token/cost needs.
     embedding-model: text-embedding-3-small
