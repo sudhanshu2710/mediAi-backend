@@ -85,7 +85,8 @@ public class ReportController {
             return cleanJson;
         }
 
-        if ("application/pdf".equals(contentType) || file.getOriginalFilename().toLowerCase().endsWith(".pdf")) {
+        if ((contentType != null && contentType.toLowerCase().contains("pdf"))
+                || (file.getOriginalFilename() != null && file.getOriginalFilename().toLowerCase().endsWith(".pdf"))) {
             String systemPrompt = loadPromptText();
             String userPrompt = "This is a PDF medical report. Extract the single JSON object exactly as required by the system prompt. Return only JSON.";
 
