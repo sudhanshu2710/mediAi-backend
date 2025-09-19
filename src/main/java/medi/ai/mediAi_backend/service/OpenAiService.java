@@ -91,7 +91,7 @@ public class OpenAiService {
         contentBlocks.add(Map.of("type", "text", "text", userPrompt));
 
         for (int i = 0; i < doc.getNumberOfPages(); i++) {
-            BufferedImage pageImage = renderer.renderImageWithDPI(i, 150); // 150 DPI = faster, usually enough
+            BufferedImage pageImage = renderer.renderImageWithDPI(i, 100); // 150 DPI = faster, usually enough
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(pageImage, "png", baos);
 
