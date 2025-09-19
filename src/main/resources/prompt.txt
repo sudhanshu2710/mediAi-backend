@@ -29,7 +29,7 @@ Read this PDF/image medical lab report and return a single, unified JSON object.
     Be very strict in covering all points without missing anything.
 -The output must be valid JSON. It should be as compact as possible: no extra line breaks, no indentation, no unnecessary spaces.
  The response must be in a single line JSON format.
--You must return the output strictly in the following JSON structure:
+-You must return the output strictly in the following JSON structure::
 {"patient":{"name":"","age":"","gender":"","report_date":""},"overall_finding":["","","","",""],"test_summary":{"TestName":["value","unit","reference_range","status"]}}
     -Do not deviate from this structure under any circumstances.
     -Do not add extra fields, keys, comments, or formatting.
@@ -38,6 +38,3 @@ Read this PDF/image medical lab report and return a single, unified JSON object.
     -If some data is missing, leave the value as an empty string "" or empty array [] but still keep the field.
     -If multiple tests exist, repeat the same array format for each inside test_summary.
     -Output must be valid JSON that can be parsed directly by a JSON parser.
-
-
-
