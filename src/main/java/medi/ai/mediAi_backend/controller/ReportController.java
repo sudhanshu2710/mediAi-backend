@@ -3,7 +3,6 @@ package medi.ai.mediAi_backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import medi.ai.mediAi_backend.service.OpenAiService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +11,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.IntStream;
 
 @RestController
 @RequiredArgsConstructor
@@ -23,18 +21,6 @@ import java.util.stream.IntStream;
 @RequestMapping("/api/reports")
 public class ReportController {
     private final OpenAiService openAiService;
-
-    @Value("${processing.chunk.chunkSizeChars:1200}")
-    private int chunkSize;
-
-    @Value("${processing.chunk.overlapChars:200}")
-    private int overlap;
-
-    @Value("${processing.retrieval.topK:12}")
-    private int topK;
-
-    @Value("${processing.token.targetChatTokens:7000}")
-    private int targetChatTokens;
 
     // Read prompt.txt from resources
     private String loadPromptText() {
@@ -49,7 +35,6 @@ public class ReportController {
 
     /**
      * Upload endpoint: file + userId (string). If user uploads again, previous vectors for that user are removed.
-     *
      * Flow:
      *  - extract text
      *  - try local parse (fast). If OK -> return JSON
@@ -66,7 +51,7 @@ public class ReportController {
         if (!StringUtils.hasText(userId)) userId = UUID.randomUUID().toString();
         // 3) fallback pipeline: chunk, embeddings, upsert to Pinecone under namespace=userId
         String namespace = userId;
-
+        System.out.println("uploadReport method is called !!");
         // If this is an image, use the OpenAI Vision chat flow (send image directly).
         String contentType = file.getContentType();
         if (contentType != null && contentType.startsWith("image/")) {
@@ -84,7 +69,7 @@ public class ReportController {
                     .trim();
             return cleanJson;
         }
-
+        System.out.println("contentType : " + contentType);
         if ((contentType != null && contentType.toLowerCase().contains("pdf"))
                 || (file.getOriginalFilename() != null && file.getOriginalFilename().toLowerCase().endsWith(".pdf"))) {
             String systemPrompt = loadPromptText();
