@@ -45,6 +45,7 @@ public class ReportController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public String uploadReport(@RequestPart("file") MultipartFile file,
                                @RequestParam("userId") String userId) throws Exception {
+        System.out.println("-----------------uploadReport method is executed!!---------------------");
         if (file == null || file.isEmpty()) {
             return "{\"error\":\"file missing\"}";
         }
