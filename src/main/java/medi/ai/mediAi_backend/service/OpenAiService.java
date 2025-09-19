@@ -1,0 +1,167 @@
+package medi.ai.mediAi_backend.service;
+
+import org.springframework.web.multipart.MultipartFile;
+
+// For working with PDF documents
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.PDFRenderer;
+
+// For rendering and saving images
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+
+// For byte array streams
+import java.io.ByteArrayOutputStream;
+
+// For exception handling
+import java.io.IOException;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.Base64;
+
+@Service
+@RequiredArgsConstructor
+public class OpenAiService {
+    private final WebClient openAiWebClient;
+
+    @Value("${app.openai.api-key}")
+    private String openAiApiKey;
+
+    @Value("${app.openai.chat-model}")
+    private String chatModel;
+
+    // --- Vision: image ---
+    public String visionChatCompletion(String systemPrompt,
+                                       String userTextPrompt,
+                                       MultipartFile imageFile,
+                                       int maxTokens) throws IOException {
+        byte[] bytes = imageFile.getBytes();
+        String base64 = Base64.getEncoder().encodeToString(bytes);
+        String mime = Optional.ofNullable(imageFile.getContentType()).orElse("image/png");
+        String dataUrl = "data:" + mime + ";base64," + base64;
+
+        List<Object> contentBlocks = new ArrayList<>();
+        contentBlocks.add(Map.of("type", "text", "text", userTextPrompt));
+        contentBlocks.add(Map.of("type", "image_url", "image_url", Map.of("url", dataUrl)));
+
+        List<Map<String,Object>> messages = new ArrayList<>();
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
+            messages.add(Map.of("role","system","content", systemPrompt));
+        }
+        messages.add(Map.of("role","user","content", contentBlocks));
+
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("model", chatModel);
+        payload.put("messages", messages);
+        payload.put("max_tokens", Math.min(maxTokens, 2000));
+
+        ChatResponse resp = openAiWebClient.post()
+                .uri("/chat/completions")
+                .headers(h -> h.setBearerAuth(openAiApiKey))
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(ChatResponse.class)
+                .block();
+
+        if (resp != null && resp.choices != null && !resp.choices.isEmpty() && resp.choices.get(0).message != null) {
+            return resp.choices.get(0).message.content;
+        }
+        return null;
+    }
+
+
+
+    public String pdfToImageAndProcess(MultipartFile pdfFile, String systemPrompt, String userPrompt) throws Exception {
+        PDDocument doc = PDDocument.load(pdfFile.getInputStream());
+        PDFRenderer renderer = new PDFRenderer(doc);
+
+        // Build content blocks for ALL pages
+        List<Object> contentBlocks = new ArrayList<>();
+        contentBlocks.add(Map.of("type", "text", "text", userPrompt));
+
+        for (int i = 0; i < doc.getNumberOfPages(); i++) {
+            BufferedImage pageImage = renderer.renderImageWithDPI(i, 150); // 150 DPI = faster, usually enough
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(pageImage, "png", baos);
+
+            String base64 = Base64.getEncoder().encodeToString(baos.toByteArray());
+            String dataUrl = "data:image/png;base64," + base64;
+
+            contentBlocks.add(Map.of("type", "image_url", "image_url", Map.of("url", dataUrl)));
+        }
+        doc.close();
+
+        // Build full chat request
+        List<Map<String,Object>> messages = new ArrayList<>();
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
+            messages.add(Map.of("role","system","content", systemPrompt));
+        }
+        messages.add(Map.of("role","user","content", contentBlocks));
+
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("model", chatModel); // e.g. gpt-4o-mini
+        payload.put("messages", messages);
+        payload.put("max_tokens", 2000);
+
+        ChatResponse resp = openAiWebClient.post()
+                .uri("/chat/completions")
+                .headers(h -> h.setBearerAuth(openAiApiKey))
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(ChatResponse.class)
+                .block();
+
+        if (resp != null && resp.choices != null && !resp.choices.isEmpty() && resp.choices.get(0).message != null) {
+            return resp.choices.get(0).message.content;
+        }
+        return null;
+    }
+
+    // --- DTOs ---
+    @Data
+    private static class EmbeddingResponse {
+        public String object;
+        public List<EmbeddingData> data;
+    }
+    @Data
+    private static class EmbeddingData {
+        public List<Double> embedding;
+        public int index;
+    }
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class ChatResponse {
+        public String id;
+        public List<Choice> choices;
+        public Usage usage;
+    }
+    @Data
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class Choice {
+        public int index;
+        public Message message;
+    }
+    @Data
+    private static class Message {
+        public String role;
+        public String content;
+    }
+    @Data
+    private static class Usage {
+        public Integer prompt_tokens;
+        public Integer completion_tokens;
+    }
+}
+
+

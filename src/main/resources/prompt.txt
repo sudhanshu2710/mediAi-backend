@@ -1,0 +1,43 @@
+
+Read this PDF/image medical lab report and return a single, unified JSON object.
+### OUTPUT REQUIREMENTS
+1. If the report is valid and can be parsed successfully:
+   - Return JSON with these top-level keys:
+     - `patient`: An object containing `name`, `age`, `gender`, `report_date`.
+     - `overall_finding`: This will summaries the whole test report as any array of string,
+            it should be easy to understand and patient-friendly.It should have at least 5 points elaborated too.
+            It should explain thing too, not just say this parameter is high or this parameter is low.
+     - `test_summary`: An object with every test as a direct child, can have multiple child nesting based on test report.
+     -  no field should be missed from the report, all should be included in test_summary.
+     -  if multiple reports as combined in a single pdf read all one by one. Till the last page.
+2. SUCCESSFUL RESPONSE STRUCTURE
+#### Patient Information:
+- Include `name`, `age`, `gender`, `report_date`.
+### Test Summary:
+- Each test is a direct child of `test_summary`.
+- Fields per test:
+  - `value`: Numeric or raw string result. Read is very carefully don't add or something else it should be very precise.
+  - `unit`: Measurement unit.
+  - `reference_range`: Normal range from report.
+  - `status`: `"Low"`, `"High"`, `"Normal"`: calculate very carefully
+-So, the above field will be in last child of the object only, there do not return it as a key-value pair
+    instead return it as an array [value , unit, reference_range, status]
+    0 index will be value,1 index will be unit,2 index will be reference_range,3 index will be status
+-other than this nothing else should be in the test_summary
+-Read all the medical report points carefully. Do not skip, omit, or ignore any test details.
+    Every single test result must be included and considered in your response.
+    Be very strict in covering all points without missing anything.
+-The output must be valid JSON. It should be as compact as possible: no extra line breaks, no indentation, no unnecessary spaces.
+ The response must be in a single line JSON format.
+-You must return the output strictly in the following JSON structure:
+{"patient":{"name":"","age":"","gender":"","report_date":""},"overall_finding":["","","","",""],"test_summary":{"TestName":["value","unit","reference_range","status"]}}
+    -Do not deviate from this structure under any circumstances.
+    -Do not add extra fields, keys, comments, or formatting.
+    -Do not change the order of keys.
+    -Do not add line breaks, indentation, or spaces — output must be single-line compact JSON.
+    -If some data is missing, leave the value as an empty string "" or empty array [] but still keep the field.
+    -If multiple tests exist, repeat the same array format for each inside test_summary.
+    -Output must be valid JSON that can be parsed directly by a JSON parser.
+
+
+
