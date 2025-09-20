@@ -8,3 +8,11 @@ app:
     # Recommend configuring the model to one that matches your token/cost needs.
     embedding-model: text-embedding-3-small
     chat-model: gpt-4o-mini   # change to a model you have access to (or 8k model)
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+
+
