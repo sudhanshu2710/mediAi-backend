@@ -1,7 +1,10 @@
 package medi.ai.mediAi_backend.util;
 
+import org.springframework.stereotype.Component;
+
 import java.nio.charset.StandardCharsets;
 
+@Component
 public class PromptGenerator {
     public String loadPromptText(String path) {
         try (var is = this.getClass().getResourceAsStream(path)) {
