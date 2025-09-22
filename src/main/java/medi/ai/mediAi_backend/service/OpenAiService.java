@@ -21,13 +21,9 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.Base64;
 
 @Service
@@ -40,6 +36,35 @@ public class OpenAiService {
 
     @Value("${app.openai.chat-model}")
     private String chatModel;
+
+    public String generateOverallFinding(String enrichedJson, String systemPrompt) {
+        Map<String,Object> userMessage = Map.of(
+                "role", "user",
+                "content", "Here is the JSON report:\n" + enrichedJson + "\n\nAdd overall_finding as per instructions."
+        );
+
+        Map<String,Object> payload = new HashMap<>();
+        payload.put("model", chatModel);
+        payload.put("messages", List.of(
+                Map.of("role","system","content", systemPrompt),
+                userMessage
+        ));
+        payload.put("max_tokens", 1500);
+
+        ChatResponse resp = openAiWebClient.post()
+                .uri("/chat/completions")
+                .headers(h -> h.setBearerAuth(openAiApiKey))
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(ChatResponse.class)
+                .block();
+
+        if (resp != null && resp.choices != null && !resp.choices.isEmpty() && resp.choices.get(0).message != null) {
+            return resp.choices.get(0).message.content;
+        }
+        return enrichedJson; // fallback
+    }
+
 
     // --- Vision: image ---
     public String visionChatCompletion(String systemPrompt,

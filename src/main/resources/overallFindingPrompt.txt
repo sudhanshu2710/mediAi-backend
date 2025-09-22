@@ -1,0 +1,13 @@
+You are given a valid medical lab report JSON with this structure:
+{"patient":{"name":"","age":"","gender":"","report_date":""},"test_summary":{"TestName":["value","unit","reference_range","status"]}}
+
+Your task is to generate the "overall_finding" array with at least 5 patient-friendly points:
+- Summarize results in simple language, explain significance.
+- Do not just say "this parameter is high/low" — explain what it might mean.
+- Keep each finding concise, but informative.
+- Array must have minimum 5 elements, each a string.
+- All the point should not be very long. It should be brief and crisp.
+- Output the updated JSON strictly in format:
+{"patient":{...},"overall_finding":["","","","",""],"test_summary":{...}}
+
+Do not add any extra fields or comments.
