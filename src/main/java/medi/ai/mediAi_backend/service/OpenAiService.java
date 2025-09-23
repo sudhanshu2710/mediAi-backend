@@ -1,25 +1,28 @@
 package medi.ai.mediAi_backend.service;
 
 import org.springframework.web.multipart.MultipartFile;
+
+// For working with PDF documents
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
 
+// For rendering and saving images
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
+
+// For byte array streams
 import java.io.ByteArrayOutputStream;
+
+// For exception handling
 import java.io.IOException;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
-import java.time.Duration;
 import java.util.*;
 import java.util.Base64;
 
@@ -33,31 +36,6 @@ public class OpenAiService {
 
     @Value("${app.openai.chat-model}")
     private String chatModel;
-
-    // --- Centralized helper with retry + exponential backoff ---
-    private ChatResponse makeChatCompletionCall(Map<String, Object> payload) {
-        return openAiWebClient.post()
-                .uri("/chat/completions")
-                .headers(h -> h.setBearerAuth(openAiApiKey))
-                .bodyValue(payload)
-                .retrieve()
-                .onStatus(HttpStatus.TOO_MANY_REQUESTS::equals, resp ->
-                        resp.bodyToMono(String.class)
-                                .flatMap(body -> {
-                                    return reactor.core.publisher.Mono.error(
-                                            new RuntimeException("429 Too Many Requests: " + body)
-                                    );
-                                })
-                )
-                .bodyToMono(ChatResponse.class)
-                .retryWhen(
-                        Retry.backoff(3, Duration.ofSeconds(2)) // 3 retries: 2s, 4s, 8s
-                                .maxBackoff(Duration.ofSeconds(10))
-                                .filter(ex -> ex.getMessage() != null &&
-                                        (ex.getMessage().contains("429")))
-                )
-                .block();
-    }
 
     public String generateOverallFinding(String enrichedJson, String systemPrompt) {
         Map<String,Object> userMessage = Map.of(
@@ -73,13 +51,20 @@ public class OpenAiService {
         ));
         payload.put("max_tokens", 1500);
 
-        ChatResponse resp = makeChatCompletionCall(payload);
+        ChatResponse resp = openAiWebClient.post()
+                .uri("/chat/completions")
+                .headers(h -> h.setBearerAuth(openAiApiKey))
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(ChatResponse.class)
+                .block();
 
         if (resp != null && resp.choices != null && !resp.choices.isEmpty() && resp.choices.get(0).message != null) {
             return resp.choices.get(0).message.content;
         }
         return enrichedJson; // fallback
     }
+
 
     // --- Vision: image ---
     public String visionChatCompletion(String systemPrompt,
@@ -106,13 +91,21 @@ public class OpenAiService {
         payload.put("messages", messages);
         payload.put("max_tokens", Math.min(maxTokens, 2000));
 
-        ChatResponse resp = makeChatCompletionCall(payload);
+        ChatResponse resp = openAiWebClient.post()
+                .uri("/chat/completions")
+                .headers(h -> h.setBearerAuth(openAiApiKey))
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(ChatResponse.class)
+                .block();
 
         if (resp != null && resp.choices != null && !resp.choices.isEmpty() && resp.choices.get(0).message != null) {
             return resp.choices.get(0).message.content;
         }
         return null;
     }
+
+
 
     public String pdfToImageAndProcess(MultipartFile pdfFile, String systemPrompt, String userPrompt) throws Exception {
         PDDocument doc = PDDocument.load(pdfFile.getInputStream());
@@ -123,7 +116,7 @@ public class OpenAiService {
         contentBlocks.add(Map.of("type", "text", "text", userPrompt));
 
         for (int i = 0; i < doc.getNumberOfPages(); i++) {
-            BufferedImage pageImage = renderer.renderImageWithDPI(i, 72); // reduced DPI for smaller payload
+            BufferedImage pageImage = renderer.renderImageWithDPI(i, 100); // 150 DPI = faster, usually enough
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(pageImage, "png", baos);
 
@@ -134,6 +127,7 @@ public class OpenAiService {
         }
         doc.close();
 
+        // Build full chat request
         List<Map<String,Object>> messages = new ArrayList<>();
         if (systemPrompt != null && !systemPrompt.isBlank()) {
             messages.add(Map.of("role","system","content", systemPrompt));
@@ -141,11 +135,17 @@ public class OpenAiService {
         messages.add(Map.of("role","user","content", contentBlocks));
 
         Map<String,Object> payload = new HashMap<>();
-        payload.put("model", chatModel);
+        payload.put("model", chatModel); // e.g. gpt-4o-mini
         payload.put("messages", messages);
         payload.put("max_tokens", 2000);
 
-        ChatResponse resp = makeChatCompletionCall(payload);
+        ChatResponse resp = openAiWebClient.post()
+                .uri("/chat/completions")
+                .headers(h -> h.setBearerAuth(openAiApiKey))
+                .bodyValue(payload)
+                .retrieve()
+                .bodyToMono(ChatResponse.class)
+                .block();
 
         if (resp != null && resp.choices != null && !resp.choices.isEmpty() && resp.choices.get(0).message != null) {
             return resp.choices.get(0).message.content;
@@ -188,3 +188,5 @@ public class OpenAiService {
         public Integer completion_tokens;
     }
 }
+
+
