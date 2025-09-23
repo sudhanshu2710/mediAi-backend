@@ -60,6 +60,7 @@ public class ReportProcessingService {
             }
             messagingTemplate.convertAndSend(destination, enrichedJson);
             log.info("Pushed partial report to {} (userId={})", destination, userId);
+            System.out.println("enrichedJson : " + enrichedJson);
             // 4) Generate overall_finding via OpenAI
             String overallPrompt = promptGenerator.loadPromptText("/overallFindingPrompt.txt");
             String finalJson = openAiService.generateOverallFinding(enrichedJson, overallPrompt);
@@ -73,6 +74,7 @@ public class ReportProcessingService {
             // 5) Push final result
             messagingTemplate.convertAndSend(destination, finalJson);
             log.info("Pushed final report to {} (userId={})", destination, userId);
+            System.out.println("finalJson : " + finalJson);
 
         } catch (IOException ioEx) {
             log.error("I/O error during report processing for userId={}", userId, ioEx);
