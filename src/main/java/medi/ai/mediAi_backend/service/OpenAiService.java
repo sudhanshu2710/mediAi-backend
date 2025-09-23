@@ -53,7 +53,9 @@ public class OpenAiService {
                         Retry.backoff(3, Duration.ofSeconds(2)) // 3 retries: 2s, 4s, 8s
                                 .maxBackoff(Duration.ofSeconds(10))
                                 .filter(ex -> ex.getMessage() != null &&
-                                        (ex.getMessage().contains("429")))
+                                        (ex.getMessage().contains("429") ||
+                                                ex.getMessage().contains("5xx") ||
+                                                ex.getMessage().contains("502")))
                 )
                 .block();
     }
