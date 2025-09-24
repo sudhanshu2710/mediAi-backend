@@ -3,6 +3,8 @@ package medi.ai.mediAi_backend.service;
 import org.springframework.web.multipart.MultipartFile;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.apache.pdfbox.text.PDFTextStripper;
+
 
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
@@ -153,7 +155,36 @@ public class OpenAiService {
         }
         return null;
     }
+    public String pdfToTextAndProcess(MultipartFile pdfFile, String systemPrompt, String userPrompt) throws Exception {
+        PDDocument doc = PDDocument.load(pdfFile.getInputStream());
+        PDFTextStripper stripper = new PDFTextStripper();
+        String text = stripper.getText(doc);
+        doc.close();
 
+        // If no text found, fallback to vision (scanned PDF)
+        if (text == null || text.trim().isEmpty()) {
+            return pdfToImageAndProcess(pdfFile, systemPrompt, userPrompt);
+        }
+
+        // Build full chat request using text only
+        List<Map<String, Object>> messages = new ArrayList<>();
+        if (systemPrompt != null && !systemPrompt.isBlank()) {
+            messages.add(Map.of("role", "system", "content", systemPrompt));
+        }
+        messages.add(Map.of("role", "user", "content", userPrompt + "\n\n" + text));
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("model", chatModel);
+        payload.put("messages", messages);
+        payload.put("max_tokens", 2000);
+
+        ChatResponse resp = makeChatCompletionCall(payload);
+
+        if (resp != null && resp.choices != null && !resp.choices.isEmpty() && resp.choices.get(0).message != null) {
+            return resp.choices.get(0).message.content;
+        }
+        return null;
+    }
     // --- DTOs ---
     @Data
     private static class EmbeddingResponse {
