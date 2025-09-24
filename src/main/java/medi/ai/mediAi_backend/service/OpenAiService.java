@@ -126,7 +126,7 @@ public class OpenAiService {
         contentBlocks.add(Map.of("type", "text", "text", userPrompt));
 
         for (int i = 0; i < doc.getNumberOfPages(); i++) {
-            BufferedImage pageImage = renderer.renderImageWithDPI(i, 50); // reduced DPI for smaller payload
+            BufferedImage pageImage = renderer.renderImageWithDPI(i, 72); // reduced DPI for smaller payload
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
 //            ImageIO.write(pageImage, "png", baos);
             ImageIO.write(pageImage, "jpg", baos); // smaller than png
