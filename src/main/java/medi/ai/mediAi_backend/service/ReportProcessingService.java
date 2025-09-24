@@ -42,7 +42,7 @@ public class ReportProcessingService {
             if (contentType != null && contentType.startsWith("image/")) {
                 cleanJson = openAiService.visionChatCompletion(systemPrompt, userPrompt, file, 8000);
             } else {
-                cleanJson = openAiService.pdfToTextAndProcess(file, systemPrompt, userPrompt);
+                cleanJson = openAiService.pdfToImageAndProcess(file, systemPrompt, userPrompt);
             }
 
             if (cleanJson == null || cleanJson.isBlank()) {
